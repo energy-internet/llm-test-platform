@@ -1,0 +1,16 @@
+{
+  "description": "A production-ready FastAPI template with modern async features. Implements a scalable project structure with API versioning, database integration (SQLAlchemy), authentication/authorization, and comprehensive error handling. Includes Pydantic schemas, automated API documentation, and testing setup.",
+  "required_fields": [],
+  "required_files": [
+    "app/main.py",
+    "app/api/api.py",
+    "app/core/config.py",
+    "app/models/user.py",
+    "app/schemas/user.py",
+    "requirements.txt"
+  ],
+  "lang": "Python",
+  "framework": "FastAPI",
+  "style": "fastapi_template",
+  "scene": "default_fastapi_project"
+}
