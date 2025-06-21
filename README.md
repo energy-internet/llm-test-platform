@@ -43,7 +43,7 @@ graph TB
     
     subgraph "外部模型服务"
         O[OpenAI / Claude API]
-        P[本地模型 (Ollama)]
+        P[本地模型 Ollama]
     end
     
     A --> D
