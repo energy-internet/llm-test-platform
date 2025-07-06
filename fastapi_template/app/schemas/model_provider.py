@@ -11,13 +11,15 @@ class ModelProviderBase(BaseModel):
     config: Optional[Dict[str, Any]] = None
 
 class ModelProviderCreate(ModelProviderBase):
-    api_key: str
+    api_key: Optional[str] = None
+    credentials: Optional[str] = None
 
 class ModelProviderUpdate(BaseModel):
     name: Optional[str] = None
     api_endpoint: Optional[str] = None
     config: Optional[Dict[str, Any]] = None
     api_key: Optional[str] = None
+    credentials: Optional[str] = None
     is_active: Optional[bool] = None
 
 class ModelProviderInDB(ModelProviderBase):

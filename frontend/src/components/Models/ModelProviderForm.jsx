@@ -10,8 +10,11 @@ const ModelProviderForm = ({ isOpen, onClose, onSubmit, initialData = null }) =>
     name: initialData?.name || '',
     provider_type: initialData?.provider_type || 'openai',
     api_key: '',
+    credentials: '',
     api_endpoint: initialData?.api_endpoint || '',
     config: initialData?.config || {},
+    project_id: initialData?.config?.project_id || '',
+    location: initialData?.config?.location || 'us-central1'
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -20,6 +23,7 @@ const ModelProviderForm = ({ isOpen, onClose, onSubmit, initialData = null }) =>
     { value: 'openai', label: 'OpenAI' },
     { value: 'anthropic', label: 'Anthropic (Claude)' },
     { value: 'google', label: 'Google Gemini' },
+    { value: 'google_vertex_ai', label: 'Google Vertex AI' },
     { value: 'deepseek', label: 'DeepSeek' },
     { value: 'ollama', label: 'Ollama (Local)' },
   ];
@@ -28,10 +32,26 @@ const ModelProviderForm = ({ isOpen, onClose, onSubmit, initialData = null }) =>
     e.preventDefault();
     setError('');
     setIsLoading(true);
+    
+    const submissionData = { ...formData };
+    if (formData.provider_type === 'google_vertex_ai') {
+      submissionData.config = {
+        project_id: formData.project_id,
+        location: formData.location,
+      };
+      delete submissionData.project_id;
+      delete submissionData.location;
+    }
+
+    // 确保api_key字段存在，即使是空字符串
+    // 对于Ollama，可以设置为空字符串，因为它不需要API密钥
+    if (formData.provider_type === 'ollama') {
+      submissionData.api_key = '';
+    }
 
     try {
-      await onSubmit(formData);
-      setFormData({ name: '', provider_type: 'openai', api_key: '', api_endpoint: '', config: {} });
+      await onSubmit(submissionData);
+      // Reset form state if needed
       onClose();
     } catch (err) {
       setError(err.message || 'Failed to save provider');
@@ -50,6 +70,7 @@ const ModelProviderForm = ({ isOpen, onClose, onSubmit, initialData = null }) =>
       openai: 'https://api.openai.com/v1',
       anthropic: 'https://api.anthropic.com',
       google: 'https://generativelanguage.googleapis.com/v1beta',
+      google_vertex_ai: '', // Vertex AI doesn't use a single endpoint URL in the same way
       deepseek: 'https://api.deepseek.com/v1',
       ollama: 'http://localhost:11434',
     };
@@ -57,12 +78,13 @@ const ModelProviderForm = ({ isOpen, onClose, onSubmit, initialData = null }) =>
   };
 
   React.useEffect(() => {
-    if (formData.provider_type && !formData.api_endpoint) {
-      setFormData(prev => ({
-        ...prev,
-        api_endpoint: getDefaultEndpoint(prev.provider_type)
-      }));
-    }
+    // When provider type changes, update endpoint and clear API key if switching to Vertex
+    const newEndpoint = getDefaultEndpoint(formData.provider_type);
+    setFormData(prev => ({
+      ...prev,
+      api_endpoint: newEndpoint,
+      api_key: prev.provider_type === 'google_vertex_ai' ? '' : prev.api_key,
+    }));
   }, [formData.provider_type]);
 
   return (
@@ -141,36 +163,91 @@ const ModelProviderForm = ({ isOpen, onClose, onSubmit, initialData = null }) =>
                     </select>
                   </div>
 
-                  <div>
-                    <label className="form-label">API Key</label>
-                    <input
-                      type="password"
-                      name="api_key"
-                      value={formData.api_key}
-                      onChange={handleChange}
-                      className="form-input"
-                      placeholder="Enter API key"
-                      required={!initialData}
-                    />
-                    {initialData && (
-                      <p className="text-xs text-gray-500 mt-1">
-                        Leave blank to keep existing key
-                      </p>
-                    )}
-                  </div>
+                  {formData.provider_type === 'google_vertex_ai' ? (
+                    <>
+                      <div>
+                        <label className="form-label">Project ID</label>
+                        <input
+                          type="text"
+                          name="project_id"
+                          value={formData.project_id}
+                          onChange={handleChange}
+                          className="form-input"
+                          placeholder="gcp-project-id"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="form-label">Location</label>
+                        <input
+                          type="text"
+                          name="location"
+                          value={formData.location}
+                          onChange={handleChange}
+                          className="form-input"
+                          placeholder="us-central1"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="form-label">Service Account JSON</label>
+                        <textarea
+                          name="credentials"
+                          value={formData.credentials}
+                          onChange={handleChange}
+                          className="form-textarea"
+                          rows="5"
+                          placeholder='Paste your service account JSON here'
+                          required={!initialData}
+                        ></textarea>
+                         {initialData && (
+                          <p className="text-xs text-gray-500 mt-1">
+                            Leave blank to keep existing credentials
+                          </p>
+                        )}
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div>
+                        <label className="form-label">API Key</label>
+                        <input
+                          type="password"
+                          name="api_key"
+                          value={formData.api_key}
+                          onChange={handleChange}
+                          className="form-input"
+                          placeholder="Enter API key"
+                          required={!initialData && formData.provider_type !== 'ollama'}
+                        />
+                        {initialData && (
+                          <p className="text-xs text-gray-500 mt-1">
+                            Leave blank to keep existing key
+                          </p>
+                        )}
+                        {formData.provider_type === 'ollama' && (
+                          <p className="text-xs text-gray-500 mt-1">
+                            Ollama本地模型不需要API密钥
+                          </p>
+                        )}
+                      </div>
 
-                  <div>
-                    <label className="form-label">API Endpoint</label>
-                    <input
-                      type="url"
-                      name="api_endpoint"
-                      value={formData.api_endpoint}
-                      onChange={handleChange}
-                      className="form-input"
-                      placeholder="https://api.openai.com/v1"
-                    />
-                  </div>
-
+                      {formData.provider_type !== 'ollama' && (
+                        <div>
+                          <label className="form-label">API Endpoint</label>
+                          <input
+                            type="url"
+                            name="api_endpoint"
+                            value={formData.api_endpoint}
+                            onChange={handleChange}
+                            className="form-input"
+                            placeholder="API Endpoint URL"
+                          />
+                        </div>
+                      )}
+                    </>
+                  )}
+                  
                   <div className="flex justify-end space-x-3 pt-4">
                     <button
                       type="button"

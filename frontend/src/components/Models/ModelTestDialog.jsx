@@ -13,7 +13,7 @@ const ModelTestDialog = ({ provider, isOpen, onClose }) => {
 
   const testMutation = useMutation({
     mutationFn: (data) => 
-      apiClient.post(`/models/providers/${provider.id}/test`, data),
+      apiClient.post(`/model-providers/providers/${provider.id}/test`, data),
     onSuccess: (response) => {
       setTestResult(response.data);
     },
@@ -139,7 +139,7 @@ const ModelTestDialog = ({ provider, isOpen, onClose }) => {
                         )}
 
                         {testResult.error && (
-                          <div className="text-sm text-red-700 mb-2">
+                          <div className="text-sm text-red-700 mb-2 whitespace-pre-wrap overflow-auto max-h-32 border border-red-200 p-2 rounded bg-red-50">
                             <strong>Error:</strong> {testResult.error}
                           </div>
                         )}

@@ -14,6 +14,7 @@ import json
 import time
 import uuid
 from datetime import datetime
+from openai import OpenAI
 
 logger = logging.getLogger(__name__)
 
@@ -250,6 +251,8 @@ def _execute_single_model_test(db, model: AIModel, test_case: dict, config: dict
             response = _execute_anthropic_test(api_key, model.name, test_case, max_tokens)
         elif provider.provider_type == "google":
             response = _execute_google_test(api_key, model.name, test_case)
+        elif provider.provider_type == "deepseek":
+            response = _execute_deepseek_test(api_key, provider.api_endpoint, model.name, test_case)
         else:
             raise ValueError(f"Unsupported provider: {provider.provider_type}")
         
@@ -314,6 +317,41 @@ def _execute_google_test(api_key, model_name, test_case):
     response = model.generate_content(test_case["input"])
     
     return response.text
+
+def _execute_deepseek_test(api_key, api_endpoint, model_name, test_case):
+    """Execute test on DeepSeek model"""
+    import logging
+    import time
+    from openai import OpenAI
+    
+    logger = logging.getLogger(__name__)
+    logger.info(f"执行DeepSeek模型测试，模型: {model_name}")
+    
+    try:
+        # 确保API端点格式正确
+        if api_endpoint.endswith('/'):
+            api_endpoint = api_endpoint.rstrip('/')
+            
+        # DeepSeek API使用根路径即可，不需要/v1
+        if api_endpoint.endswith('/v1'):
+            api_endpoint = api_endpoint[:-3]
+            
+        logger.info(f"使用API端点: {api_endpoint}")
+        
+        # 创建OpenAI客户端，指向DeepSeek API
+        client = OpenAI(api_key=api_key, base_url=api_endpoint)
+        
+        response = client.chat.completions.create(
+            model=model_name,  # 使用传入的模型名称
+            messages=[{"role": "user", "content": test_case["input"]}],
+            max_tokens=1000
+        )
+        
+        logger.info(f"DeepSeek测试响应成功")
+        return response.choices[0].message.content
+    except Exception as e:
+        logger.error(f"DeepSeek测试执行失败: {str(e)}", exc_info=True)
+        raise ValueError(f"DeepSeek模型调用失败: {str(e)}")
 
 def _calculate_test_score(test_case, response):
     """Calculate test score"""

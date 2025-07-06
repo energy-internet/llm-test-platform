@@ -64,10 +64,15 @@ const ModelForm = ({ provider, onSuccess, onCancel }) => {
         name: values.name,
         provider_type: values.provider_type,
         api_endpoint: values.api_endpoint,
-        api_key_encrypted: values.api_key, // 实际应用中需要加密
+        api_key: values.api_key,
         config: {
           description: values.description
         }
+      }
+
+      // 对于 Ollama 类型，确保 api_key 字段存在，即使是空字符串
+      if (values.provider_type === 'ollama' && !values.api_key) {
+        providerData.api_key = '';
       }
 
       let result

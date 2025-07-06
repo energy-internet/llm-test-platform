@@ -15,6 +15,7 @@ class ModelProvider(Base):
     provider_type = Column(String(50), nullable=False)  # openai, anthropic, google, etc.
     api_endpoint = Column(Text)
     api_key_encrypted = Column(Text)
+    credentials_encrypted = Column(Text)
     config = Column(JSONB)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)

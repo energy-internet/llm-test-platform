@@ -1,7 +1,7 @@
 // src/App.jsx
 import React, { useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
-import { ConfigProvider } from 'antd'
+import { ConfigProvider, App as AntdApp } from 'antd'
 import zhCN from 'antd/locale/zh_CN'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import dayjs from 'dayjs'
@@ -60,35 +60,37 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ConfigProvider locale={zhCN} theme={theme}>
-        <Router>
-          <div className="App" style={{ minHeight: '100vh' }}>
-            <Routes>
-              {/* 公开路由 */}
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/register" element={<RegisterPage />} />
-              
-              {/* 受保护的路由 */}
-              <Route
-                path="/*"
-                element={
-                  <ProtectedRoute>
-                    <AppLayout>
-                      <Routes>
-                        <Route path="/" element={<Navigate to="/dashboard" replace />} />
-                        <Route path="/dashboard" element={<Dashboard />} />
-                        <Route path="/models" element={<ModelManagement />} />
-                        <Route path="/tests/create" element={<TestCreation />} />
-                        <Route path="/tests/queue" element={<TaskQueue />} />
-                        <Route path="/reports" element={<Reports />} />
-                        <Route path="*" element={<Navigate to="/dashboard" replace />} />
-                      </Routes>
-                    </AppLayout>
-                  </ProtectedRoute>
-                }
-              />
-            </Routes>
-          </div>
-        </Router>
+        <AntdApp>
+          <Router>
+            <div className="App" style={{ minHeight: '100vh' }}>
+              <Routes>
+                {/* 公开路由 */}
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/register" element={<RegisterPage />} />
+                
+                {/* 受保护的路由 */}
+                <Route
+                  path="/*"
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <Routes>
+                          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                          <Route path="/dashboard" element={<Dashboard />} />
+                          <Route path="/models" element={<ModelManagement />} />
+                          <Route path="/tests/create" element={<TestCreation />} />
+                          <Route path="/tests/queue" element={<TaskQueue />} />
+                          <Route path="/reports" element={<Reports />} />
+                          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+                        </Routes>
+                      </AppLayout>
+                    </ProtectedRoute>
+                  }
+                />
+              </Routes>
+            </div>
+          </Router>
+        </AntdApp>
       </ConfigProvider>
     </QueryClientProvider>
   )

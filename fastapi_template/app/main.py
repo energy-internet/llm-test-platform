@@ -15,6 +15,9 @@ from app.api.api_v1.api import api_router
 from app.celery_config import celery_app
 from app.services.auth_service import AuthService
 from app.schemas.user import UserCreate, UserRole
+from app.models.user import User
+from app.models.model_provider import ModelProvider
+from app.models.test_task import TestTask, TaskStatus
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
