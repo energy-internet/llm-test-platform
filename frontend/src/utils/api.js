@@ -42,4 +42,39 @@ export const handleApiError = (error) => {
     }
 };
 
+// 分组方法补充：保持以前默认导出为 api 实例，同时挂载命名空间
+api.auth = {
+    me: () => api.get('/auth/me'),
+    login: (payload) => api.post('/auth/login', payload),
+    register: (payload) => api.post('/auth/register', payload),
+};
+
+api.models = {
+    getProviders: () => api.get('/model-providers'),
+    createProvider: (data) => api.post('/model-providers', data),
+    updateProvider: (id, data) => api.put(`/model-providers/${id}`, data),
+    deleteProvider: (id) => api.delete(`/model-providers/${id}`),
+};
+
+api.benchmarks = {
+    getBenchmarks: () => api.get('/benchmarks'),
+    createBenchmark: (data) => api.post('/benchmarks', data),
+    updateBenchmark: (id, data) => api.put(`/benchmarks/${id}`, data),
+    deleteBenchmark: (id) => api.delete(`/benchmarks/${id}`),
+};
+
+api.tests = {
+    // 若有测试用例的接口，可在此扩展
+};
+
+// 任务（复用后端 /tests 路由以匹配现有后端）
+api.tasks = {
+    getTasks: (params) => api.get('/tests', { params }),
+    createTask: (data) => api.post('/tests', data),
+    updateTask: (id, data) => api.put(`/tests/${id}/status`, data),
+    getTaskResults: (id) => api.get(`/tests/${id}/results`),
+    cancelTask: (id) => api.post(`/tests/${id}/cancel`),
+    retryTask: (id) => api.post(`/tests/${id}/retry`),
+};
+
 export default api;

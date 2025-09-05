@@ -15,6 +15,12 @@ from app.api.api_v1.api import api_router
 from app.celery_config import celery_app
 from app.services.auth_service import AuthService
 from app.schemas.user import UserCreate, UserRole
+# 新增导入：用于种子数据
+from app.models.benchmark import Benchmark
+from app.models.model_provider import ModelProvider, AIModel
+from app.models.test_task import TestTask, TaskStatus
+from sqlalchemy import func
+import uuid
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -46,12 +52,105 @@ def startup_event():
                 password="admin123",
                 role=UserRole.ADMIN
             )
-            AuthService.create_user(db, admin_user_in)
+            admin_user = AuthService.create_user(db, admin_user_in)
             logger.info("Admin user created successfully.")
         else:
             logger.info("Admin user already exists.")
+
+        # 开发环境：插入Mock基准、模型与任务（若不存在）
+        # 1) Benchmark
+        benchmark = db.query(Benchmark).filter(Benchmark.name == "Demo Benchmark").first()
+        if not benchmark:
+            benchmark = Benchmark(
+                name="Demo Benchmark",
+                description="用于演示任务队列显示的基准测试",
+                benchmark_type="demo",
+                config={"cases": 10}
+            )
+            db.add(benchmark)
+            db.commit()
+            db.refresh(benchmark)
+            logger.info("Created demo benchmark")
+
+        # 2) Model Provider for admin
+        provider = db.query(ModelProvider).filter(
+            ModelProvider.user_id == admin_user.id,
+            ModelProvider.name == "Demo Provider"
+        ).first()
+        if not provider:
+            provider = ModelProvider(
+                user_id=admin_user.id,
+                name="Demo Provider",
+                provider_type="local",
+                api_endpoint="http://localhost/mock",
+                api_key_encrypted="demo",
+                config={"note": "dev-seed"}
+            )
+            db.add(provider)
+            db.commit()
+            db.refresh(provider)
+            logger.info("Created demo provider for admin")
+
+        # 3) Two demo models
+        models = db.query(AIModel).filter(AIModel.provider_id == provider.id).all()
+        if len(models) == 0:
+            m1 = AIModel(provider_id=provider.id, name="Demo-Model-A", model_type="chat")
+            m2 = AIModel(provider_id=provider.id, name="Demo-Model-B", model_type="chat")
+            db.add_all([m1, m2])
+            db.commit()
+            models = db.query(AIModel).filter(AIModel.provider_id == provider.id).all()
+            logger.info("Created demo models for admin")
+
+        model_ids = [m.id for m in models]
+
+        # 4) Seed a few TestTask if none exist for admin
+        existing_tasks = db.query(func.count(TestTask.id)).filter(TestTask.user_id == admin_user.id).scalar() or 0
+        if existing_tasks == 0:
+            demo_tasks = [
+                TestTask(
+                    user_id=admin_user.id,
+                    name="示例任务-等待中",
+                    benchmark_id=benchmark.id,
+                    model_ids=model_ids,
+                    config={"batch": 1},
+                    status=TaskStatus.PENDING,
+                    progress=0
+                ),
+                TestTask(
+                    user_id=admin_user.id,
+                    name="示例任务-运行中",
+                    benchmark_id=benchmark.id,
+                    model_ids=model_ids,
+                    config={"batch": 1},
+                    status=TaskStatus.RUNNING,
+                    progress=42
+                ),
+                TestTask(
+                    user_id=admin_user.id,
+                    name="示例任务-已完成",
+                    benchmark_id=benchmark.id,
+                    model_ids=model_ids,
+                    config={"batch": 1},
+                    status=TaskStatus.COMPLETED,
+                    progress=100
+                ),
+                TestTask(
+                    user_id=admin_user.id,
+                    name="示例任务-失败",
+                    benchmark_id=benchmark.id,
+                    model_ids=model_ids,
+                    config={"batch": 1},
+                    status=TaskStatus.FAILED,
+                    progress=67,
+                    error_message="示例错误：超时"
+                )
+            ]
+            db.add_all(demo_tasks)
+            db.commit()
+            logger.info("Seeded demo tasks for admin")
+
     except Exception as e:
-        logger.error(f"Error during startup user creation: {e}", exc_info=True)
+        logger.error(f"Error during startup user/data creation: {e}", exc_info=True)
     finally:
         db.close()
 
